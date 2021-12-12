@@ -1,41 +1,52 @@
 # TODO:
 # + random graph generation
 # + node choosing
-# - generate route
+# + generate route
+# Destination-Sequenced Distance Vector Routing 
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
 import os
 import math
+from threading import Thread
+import netgraph
+import time
 
-from networkx.generators.classic import null_graph
+G = None
+I = None
 
+gPath = []
 gRouteTable = []
 # route = {"table"}
 # route = {"hops"}
 # index = src node
 # { id: weight }
 
-def ParseRoute(G, srcNode, dstNode):
+def ParseRoute(srcNode, dstNode):
+    global G, I, gRouteTable, gPath
     if (gRouteTable == []):
         print('route table is empty')
         exit(-1)
 
     cur = dstNode
-    path = []
+
+    if (gPath!= None and len(gPath) != 0):
+        for node in gPath:
+            I.node_artists[node].set_color('blue')
+
+    gPath.clear()
 
     while cur != -1 and cur != srcNode:
-        path.append(cur)
+        gPath.append(cur)
         cur = gRouteTable[srcNode]["hops"][cur]
 
-    path.append(srcNode)
+    gPath.append(srcNode)
 
-    color_map = ['red' if node in path else 'blue' for node in G]
-    nx.draw(G,pos=nx.spring_layout(G,weight='weight'),node_color=color_map, with_labels=True)
-    plt.savefig('foo2.png', bbox_inches='tight')
-    plt.clf()
-    os.startfile('foo2.png', 'open')
-    print (f"Path from {srcNode} to {dstNode} is: {path}")
+    for node in gPath:
+        I.node_artists[node].set_color('red')
+
+    # os.startfile('foo2.png', 'open')
+    print (f"Path from {srcNode} to {dstNode} is: {gPath}")
     weight = gRouteTable[srcNode]["table"][dstNode]
     print (f"With weight: {weight}")
 
@@ -44,12 +55,7 @@ def ParseRoute(G, srcNode, dstNode):
 def BellmanFord(
     graph: dict[int, dict[int, float]], source: int
 ) -> dict[int, float] | None:
-    """Bellman-Ford algorithm
-    O(n m) time, O(n^2) space (with a sliding row space would be O(m))
-    Based on Tim Roughgarden's lectures
-    :returns: shortest distances from the source to all the graph's vertices
-    or None for negative cycle
-    """
+    global G, fig, gRouteTable
     n = len(graph)
     predecessor = []
 
@@ -78,13 +84,16 @@ def BellmanFord(
 
     return A[n - 1], predecessor
 
+
 def GenerateRandomGraph():
+    global G, I, gRouteTable
     # random node's count
     rand1 = 10
     rand2 = 20
 
     dNodeCnt = random.randint(10,20)
     # Probability for edge creation (optimal - 0.22)
+    # fig, ax = plt.subplots()
     G = nx.gnp_random_graph(dNodeCnt, 0.22)
     # add weight
     for u, v, w in G.edges.data():    
@@ -92,12 +101,13 @@ def GenerateRandomGraph():
     # spring_layout - good view of graph
     # nodes labels - number
     # edge labels - weights
-    # labels = nx.get_edge_attributes(G,'weight')
+    labels = nx.get_edge_attributes(G,'weight')
     # nx.draw_networkx_edge_labels(G,pos=nx.spring_layout(G,weight='weight'),edge_labels=labels)
-    nx.draw(G,pos=nx.spring_layout(G,weight='weight'), with_labels=True)
-    plt.savefig('foo1.png', bbox_inches='tight')
-    plt.clf()
-    os.startfile('foo1.png', 'open')
+    # nx.draw(G,pos=nx.spring_layout(G,weight='weight'), with_labels=True)
+    # plt.savefig('foo1.png', bbox_inches='tight')
+    # plt.clf()
+    # os.startfile('foo1.png', 'open')
+
     for i in range(len(G)):
         A, predecessor = BellmanFord(G,i)
         route = {}
@@ -105,11 +115,41 @@ def GenerateRandomGraph():
         route["hops"] = predecessor
         gRouteTable.append(route)
 
-    return G
+    color_map = ['blue' for node in G]
 
-def main():
-    G = GenerateRandomGraph()
+    color_map = dict()
+    for node in G:
+        color_map[node] = 'tab:blue'
+
+    I = netgraph.EditableGraph(G,node_labels=True, node_color=color_map, node_label_bbox=dict(fc="lightgreen", ec="black", boxstyle="square", lw=5),
+                                node_size=5,)
+
+    # fig.canvas.draw()
+    plt.show()
+    return
+
+def UpdateGraph():
+    srcNode = int(input("Input src node (or -1): "))
+    if (srcNode < 0 or srcNode > len(G)):
+        print('Bad src node name')
+        exit(-1)
+
+    dstNode = int(input("Input dst node: "))
+    if (dstNode < 0 or dstNode > len(G)):
+        print('Bad dst node name')
+        exit(-1)    
+
+    return
+
+def ChangeGraph():
+    global G
+    while G == None:
+        1
     while 1:
+        if (G == None):
+            print ('graph doesn\'t exists')
+            exit(-1)
+
         srcNode = int(input("Input src node (or -1): "))
         if (srcNode < 0 or srcNode > len(G)):
             print('Bad src node name')
@@ -124,10 +164,16 @@ def main():
             print('Bad dst or src node name')
             exit(-1)
 
-        ParseRoute(G,srcNode,dstNode)
+        ParseRoute(srcNode,dstNode)
+
+def main():
+    thread = Thread(target = ChangeGraph)
+    thread.start()
+    GenerateRandomGraph()
+    # ChangeGraph()
+    #thread.join()
 
     return
-
 
 if __name__ == "__main__":
     main()
