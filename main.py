@@ -16,10 +16,21 @@ gRouteTable = []
 # index = src node
 # { id: weight }
 
-def ParseRoute(G, src_node, dst_node):
+def ParseRoute(G, srcNode, dstNode):
     if (gRouteTable == []):
         print('route table is empty')
         exit(-1)
+
+    cur = dstNode
+    path = []
+
+    while cur != -1 and cur != srcNode:
+        path.append(cur)
+        cur = gRouteTable[srcNode]["hops"][cur]
+
+    print (f"Path from {srcNode} to {dstNode} is: {path}")
+    weight = gRouteTable[srcNode]["table"][dstNode]
+    print (f"With weight: {weight}")
 
     return
 
@@ -80,9 +91,9 @@ def GenerateRandomGraph():
     # print (G.edges())
     plt.savefig('foo.png', bbox_inches='tight')
     os.startfile('foo.png', 'open')
-    route = {}
     for i in range(len(G)):
-        A, predecessor = BellmanFord(G,0)
+        A, predecessor = BellmanFord(G,i)
+        route = {}
         route["table"] = A
         route["hops"] = predecessor
         gRouteTable.append(route)
@@ -91,22 +102,22 @@ def GenerateRandomGraph():
 
 def main():
     G = GenerateRandomGraph()
+    while 1:
+        srcNode = int(input("Input src node (or -1): "))
+        if (srcNode < 0 or srcNode > len(G)):
+            print('Bad src node name')
+            exit(-1)
 
-    srcNode = int(input("Input src node: "))
-    if (srcNode < 0 or srcNode > len(G)):
-        print('Bad src node name')
-        exit(-1)
+        dstNode = int(input("Input dst node: "))
+        if (dstNode < 0 or dstNode > len(G)):
+            print('Bad dst node name')
+            exit(-1)
+        
+        if (srcNode == dstNode):
+            print('Bad dst or src node name')
+            exit(-1)
 
-    dstNode = int(input("Input dst node: "))
-    if (dstNode < 0 or dstNode > len(G)):
-        print('Bad dst node name')
-        exit(-1)
-    
-    if (srcNode == dstNode):
-        print('Bad dst or src node name')
-        exit(-1)
-
-
+        ParseRoute(G,srcNode,dstNode)
 
     return
 
