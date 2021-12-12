@@ -28,6 +28,13 @@ def ParseRoute(G, srcNode, dstNode):
         path.append(cur)
         cur = gRouteTable[srcNode]["hops"][cur]
 
+    path.append(srcNode)
+
+    color_map = ['red' if node in path else 'blue' for node in G]
+    nx.draw(G,pos=nx.spring_layout(G,weight='weight'),node_color=color_map, with_labels=True)
+    plt.savefig('foo2.png', bbox_inches='tight')
+    plt.clf()
+    os.startfile('foo2.png', 'open')
     print (f"Path from {srcNode} to {dstNode} is: {path}")
     weight = gRouteTable[srcNode]["table"][dstNode]
     print (f"With weight: {weight}")
@@ -88,9 +95,9 @@ def GenerateRandomGraph():
     # labels = nx.get_edge_attributes(G,'weight')
     # nx.draw_networkx_edge_labels(G,pos=nx.spring_layout(G,weight='weight'),edge_labels=labels)
     nx.draw(G,pos=nx.spring_layout(G,weight='weight'), with_labels=True)
-    # print (G.edges())
-    plt.savefig('foo.png', bbox_inches='tight')
-    os.startfile('foo.png', 'open')
+    plt.savefig('foo1.png', bbox_inches='tight')
+    plt.clf()
+    os.startfile('foo1.png', 'open')
     for i in range(len(G)):
         A, predecessor = BellmanFord(G,i)
         route = {}
