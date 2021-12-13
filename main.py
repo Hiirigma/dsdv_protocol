@@ -6,7 +6,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
-import os
 import math
 from threading import Thread
 import netgraph
@@ -14,22 +13,30 @@ import time
 
 gG = None
 gI = None
-gIprev = None
 gSlow = 0.1
+
+gSrcNode = -1
+gDstNode = -1
 
 gPath = []
 gRouteTable = []
+gSavedEdges = None
+gDefaultCount = 0
+
+gMaxEdgeDif = 0.2
 # route = {"table"}
 # route = {"hops"}
 # index = src node
 # { id: weight }
 
 def BellmanFord(graph, source: int) -> dict[int, float] | None:
-    global gG, gSlow
+    global gG, gSlow, gSavedEdges, gDefaultCount
     n = len(graph.nodes)
     predecessor = []
 
-    for i in range(n):
+    lMax = max(gDefaultCount,max(gG.nodes))
+
+    for _ in range(lMax):
         predecessor.append(-1)
 
     vertices = graph.nodes
@@ -41,21 +48,22 @@ def BellmanFord(graph, source: int) -> dict[int, float] | None:
 
     adj = []
 
-    for _ in graph.nodes:
+    for _ in range(lMax):
         adj.append(set())
 
     # not crutch
-    prev = -1
-    for node1 in graph.edges:
+    for _ in range(len(graph.edges)):
+        node1 = graph.edges[_]
         l = []
-        if (node1[0] <= prev):
-            continue
         for node2 in graph.edges:
-            prev = node1[0]
             if node1[0] == node2[0]:
-                adj[node2[1]].add(prev)
+                adj[node2[1]].add(node1[0])
                 l.append(node2[1])
-        adj[prev].update(set(l))
+                _+=1
+        if len(l) != 0:
+            _ -= 1
+
+        adj[node1[0]].update(set(l))
 
     for i in range(1, n + 1):
         A[i] = A[i - 1].copy()
@@ -75,10 +83,10 @@ def BellmanFord(graph, source: int) -> dict[int, float] | None:
     return A[n - 1], predecessor
 
 def ParseRoute(srcNode, dstNode):
-    global gG, gI, gIprev, gRouteTable, gPath
+    global gG, gI, gRouteTable, gPath
 
     gRouteTable.clear()
-    for i in range(len(gI.nodes)):
+    for i in gI.nodes:
         A, predecessor = BellmanFord(gI,i)
         route = {}
         route["table"] = A
@@ -89,12 +97,17 @@ def ParseRoute(srcNode, dstNode):
         print('route table is empty')
         exit(-1)
 
+    if gSrcNode not in gI.nodes or \
+    gDstNode not in gI.nodes:
+        for node in gI.nodes:
+            gI.node_artists[node].set_color('blue')
+        return
+
     # time.sleep(5)
     cur = dstNode
 
-    if (gPath!= None and len(gPath) != 0):
-        for node in gPath:
-            gI.node_artists[node].set_color('blue')
+    for node in gI.nodes:
+        gI.node_artists[node].set_color('blue')
 
     gPath.clear()
 
@@ -104,26 +117,27 @@ def ParseRoute(srcNode, dstNode):
 
     gPath.append(srcNode)
 
-    for node in gPath:
-        gI.node_artists[node].set_color('red')
-
     # os.startfile('foo2.png', 'open')
-    print (f"Path from {srcNode} to {dstNode} is: {gPath}")
     weight = gRouteTable[srcNode]["table"][dstNode]
+    if (weight != math.inf):
+        print (f"Path from {srcNode} to {dstNode} is: {gPath}")
+        for node in gPath:
+            gI.node_artists[node].set_color('red')
+    
     print (f"With weight: {weight}")
 
     return
 
 def GenerateRandomGraph():
-    global gG, gI, gIprev, gRouteTable
+    global gG, gI, gSavedEdges, gDefaultCount
     # random node's count
     rand1 = 10
     rand2 = 20
 
-    dNodeCnt = random.randint(10,20)
+    dNodeCnt = random.randint(5,10)
     # Probability for edge creation (optimal - 0.22)
     # fig, ax = plt.subplots()
-    gG = nx.gnp_random_graph(dNodeCnt, 0.22)
+    gG = nx.gnp_random_graph(dNodeCnt, 0.5)
     # add weight
     for u, v, w in gG.edges.data():    
         gG.add_weighted_edges_from([(u, v, 1)])
@@ -131,6 +145,7 @@ def GenerateRandomGraph():
     # nodes labels - number
     # edge labels - weights
     labels = nx.get_edge_attributes(gG,'weight')
+    gDefaultCount = len(gG)
     # nx.draw_networkx_edge_labels(G,pos=nx.spring_layout(G,weight='weight'),edge_labels=labels)
     # nx.draw(G,pos=nx.spring_layout(G,weight='weight'), with_labels=True)
     # plt.savefig('foo1.png', bbox_inches='tight')
@@ -143,61 +158,82 @@ def GenerateRandomGraph():
     for node in gG:
         color_map[node] = 'tab:blue'
 
-    gIprev = gI = netgraph.EditableGraph(gG,node_labels=True, node_color=color_map, node_label_bbox=dict(fc="lightgreen", ec="black", boxstyle="square", lw=5),
-                                node_size=5,)
+    gI = netgraph.EditableGraph(gG,node_labels=True, node_color=color_map, node_label_bbox=dict(fc="lightgreen", ec="black", boxstyle="square", lw=5),
+                                node_size=3,)
 
+    gSavedEdges = gI.edges.copy()
     # fig.canvas.draw()
     plt.show()
     return
 
 
 def ChangeGraph():
-    global gG
+    global gG, gI, gSrcNode, gDstNode
     while gG == None:
         1
+
     while 1:
-        srcNode = int(input("Input src node (or -1): "))
-        if (srcNode < 0 or srcNode > len(gG)):
-            print('Bad src node name')
-            exit(-1)
+        gSrcNode = int(input("Input src node (or -1): "))
 
-        dstNode = int(input("Input dst node: "))
-        if (dstNode < 0 or dstNode > len(gG)):
-            print('Bad dst node name')
-            exit(-1)
+        gDstNode = int(input("Input dst node: "))
         
-        if (srcNode == dstNode):
+        if (gSrcNode == gDstNode):
             print('Bad dst or src node name')
-            exit(-1)
+            continue
 
-        ParseRoute(srcNode,dstNode)
+        ParseRoute(gSrcNode, gDstNode)
 
 def CheckGraphAndUpdate():
-    global gI, gIprev
+    global gI, gSavedEdges
 
-    while gI == None or gIprev == None:
+    while gI == None or gSavedEdges == None:
         time.sleep(5) 
         continue
     while 1:
         time.sleep(4)
-        if gI != gIprev:
-            gIprev = gI
+        if gI.edges != gSavedEdges:
             gRouteTable.clear()
-            for i in range(len(gI.nodes)):
-                A, predecessor = BellmanFord(gI,i)
-                route = {}
-                route["table"] = A
-                route["hops"] = predecessor
-                gRouteTable.append(route)
+            ParseRoute(gSrcNode, gDstNode)
+            gSavedEdges = gI.edges.copy()
 
     return
 
-def main():
-    thread = Thread(target = ChangeGraph)
-    thread.start()
+def CheckDistance():
+    global gI
 
-    thread1 = Thread(target = CheckGraphAndUpdate)
-    thread1.start()
+    while gI == None:
+        time.sleep(5) 
+        continue
+    while 1:
+        time.sleep(3)
+        for node_pos1 in gI.node_positions:
+            for node_pos2 in gI.node_positions:
+
+                if node_pos1 == node_pos2:
+                    continue
+
+                # Return the Euclidean norm, sqrt(x*x + y*y). This is the length of the vector from the origin to point (x, y).
+                dist = math.hypot(gI.node_positions[node_pos2][0] - gI.node_positions[node_pos1][0], 
+                gI.node_positions[node_pos2][1] - gI.node_positions[node_pos1][1])
+
+                if (dist > gMaxEdgeDif):
+                    if ((node_pos1,node_pos2) in gI.edges) or \
+                        ((node_pos2, node_pos1) in gI.edges):
+                        gI._delete_edge((node_pos1,node_pos2))
+                else:
+                    if ((node_pos1,node_pos2) not in gI.edges) and \
+                    ((node_pos2, node_pos1) not in gI.edges):
+                        gI._add_edge((node_pos1,node_pos2))
+
+def main():
+    tComputeRoute = Thread(target = ChangeGraph)
+    tComputeRoute.start()
+
+    tCheckGraphChanges = Thread(target = CheckGraphAndUpdate)
+    tCheckGraphChanges.start()
+
+    tCheckDist = Thread(target = CheckDistance)
+    tCheckDist.start()
 
     GenerateRandomGraph()
 
