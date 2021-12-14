@@ -36,7 +36,7 @@ def BellmanFord(graph, source: int) -> dict[int, float] | None:
 
     lMax = max(gDefaultCount,max(gG.nodes))
 
-    for _ in range(lMax):
+    for _ in range(lMax + 1):
         predecessor.append(-1)
 
     vertices = graph.nodes
@@ -48,7 +48,7 @@ def BellmanFord(graph, source: int) -> dict[int, float] | None:
 
     adj = []
 
-    for _ in range(lMax):
+    for _ in range(lMax + 1):
         adj.append(set())
 
     # not crutch
@@ -117,7 +117,6 @@ def ParseRoute(srcNode, dstNode):
 
     gPath.append(srcNode)
 
-    # os.startfile('foo2.png', 'open')
     weight = gRouteTable[srcNode]["table"][dstNode]
     if (weight != math.inf):
         print (f"Path from {srcNode} to {dstNode} is: {gPath}")
@@ -141,28 +140,19 @@ def GenerateRandomGraph():
     # add weight
     for u, v, w in gG.edges.data():    
         gG.add_weighted_edges_from([(u, v, 1)])
-    # spring_layout - good view of graph
-    # nodes labels - number
-    # edge labels - weights
+
     labels = nx.get_edge_attributes(gG,'weight')
     gDefaultCount = len(gG)
-    # nx.draw_networkx_edge_labels(G,pos=nx.spring_layout(G,weight='weight'),edge_labels=labels)
-    # nx.draw(G,pos=nx.spring_layout(G,weight='weight'), with_labels=True)
-    # plt.savefig('foo1.png', bbox_inches='tight')
-    # plt.clf()
-    # os.startfile('foo1.png', 'open')
-
+ 
     color_map = ['blue' for node in gG]
 
     color_map = dict()
     for node in gG:
-        color_map[node] = 'tab:blue'
+        color_map[node] = 'blue'
 
-    gI = netgraph.EditableGraph(gG,node_labels=True, node_color=color_map, node_label_bbox=dict(fc="lightgreen", ec="black", boxstyle="square", lw=5),
-                                node_size=3,)
+    gI = netgraph.EditableGraph(gG,node_labels=True, node_color=color_map,node_size=3,)
 
     gSavedEdges = gI.edges.copy()
-    # fig.canvas.draw()
     plt.show()
     return
 
