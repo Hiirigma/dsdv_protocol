@@ -214,6 +214,8 @@ def CheckDistance():
                     if ((node_pos1,node_pos2) not in gI.edges) and \
                     ((node_pos2, node_pos1) not in gI.edges):
                         gI._add_edge((node_pos1,node_pos2))
+                        # try to change weights
+                        # gG.add_weighted_edges_from([(node_pos1, node_pos2, dist)])
 
 def main():
     tComputeRoute = Thread(target = ChangeGraph)
