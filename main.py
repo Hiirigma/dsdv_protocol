@@ -23,14 +23,16 @@ gRouteTable = []
 gSavedEdges = None
 gDefaultCount = 0
 
+gWeights = {}
+
 gMaxEdgeDif = 0.2
 # route = {"table"}
 # route = {"hops"}
 # index = src node
 # { id: weight }
 
-def BellmanFord(graph, source: int) -> dict[int, float] | None:
-    global gG, gSlow, gSavedEdges, gDefaultCount
+def BellmanFord(graph, source: int):
+    global gG, gSlow, gSavedEdges, gDefaultCount, gWeights
     n = len(graph.nodes)
     predecessor = []
 
@@ -69,9 +71,9 @@ def BellmanFord(graph, source: int) -> dict[int, float] | None:
         A[i] = A[i - 1].copy()
         for w in graph.nodes:
             for v in adj[w]:
-                if (A[i - 1][w] + 1 < A[i][v]):
+                if (A[i - 1][w] + gWeights[w][v] < A[i][v]):
                     # time.sleep(gSlow)
-                    A[i][v] = A[i - 1][w] + 1
+                    A[i][v] = A[i - 1][w] + gWeights[w][v]
                     # gI.node_artists[w].set_color('green')
                     predecessor[v] = w
                 #else:
@@ -129,19 +131,11 @@ def ParseRoute(srcNode, dstNode):
 
 def GenerateRandomGraph():
     global gG, gI, gSavedEdges, gDefaultCount
-    # random node's count
-    rand1 = 10
-    rand2 = 20
 
     dNodeCnt = random.randint(5,10)
     # Probability for edge creation (optimal - 0.22)
-    # fig, ax = plt.subplots()
     gG = nx.gnp_random_graph(dNodeCnt, 0.5)
-    # add weight
-    for u, v, w in gG.edges.data():    
-        gG.add_weighted_edges_from([(u, v, 1)])
 
-    labels = nx.get_edge_attributes(gG,'weight')
     gDefaultCount = len(gG)
  
     color_map = ['blue' for node in gG]
@@ -152,6 +146,7 @@ def GenerateRandomGraph():
 
     gI = netgraph.EditableGraph(gG,node_labels=True, node_color=color_map,node_size=3,)
 
+    CheckDistance()
     gSavedEdges = gI.edges.copy()
     plt.show()
     return
@@ -171,51 +166,61 @@ def ChangeGraph():
             print('Bad dst or src node name')
             continue
 
-        ParseRoute(gSrcNode, gDstNode)
+        # ParseRoute(gSrcNode, gDstNode)
+
+def CheckDistance():
+    global gI, gWeights
+
+    while gI == None:
+        time.sleep(5) 
+        continue
+
+    for node_pos in gI.node_positions:
+        gWeights[node_pos] = {}
+
+    for node_pos1 in gI.node_positions:
+        for node_pos2 in gI.node_positions:
+
+            if node_pos1 == node_pos2:
+                continue
+
+            # Return the Euclidean norm, sqrt(x*x + y*y). This is the length of the vector from the origin to point (x, y).
+            dist = math.hypot(gI.node_positions[node_pos2][0] - gI.node_positions[node_pos1][0], 
+            gI.node_positions[node_pos2][1] - gI.node_positions[node_pos1][1])
+
+            if (dist > gMaxEdgeDif):
+                if ((node_pos1,node_pos2) in gI.edges) or \
+                    ((node_pos2, node_pos1) in gI.edges):
+                    gI._delete_edge((node_pos1,node_pos2))
+                # change weights to inf
+                gWeights[node_pos1][node_pos2] = 9999
+                gWeights[node_pos2][node_pos1] = 9999
+            else:
+                if ((node_pos1,node_pos2) not in gI.edges) and \
+                ((node_pos2, node_pos1) not in gI.edges):
+                    gI._add_edge((node_pos1,node_pos2))
+
+                # change weights
+                gWeights[node_pos1][node_pos2] = dist
+                gWeights[node_pos2][node_pos1] = dist
 
 def CheckGraphAndUpdate():
     global gI, gSavedEdges
-
-    while gI == None or gSavedEdges == None:
-        time.sleep(5) 
-        continue
-    while 1:
-        time.sleep(4)
-        if gI.edges != gSavedEdges:
-            gRouteTable.clear()
-            ParseRoute(gSrcNode, gDstNode)
-            gSavedEdges = gI.edges.copy()
-
-    return
-
-def CheckDistance():
-    global gI
 
     while gI == None:
         time.sleep(5) 
         continue
     while 1:
-        time.sleep(3)
-        for node_pos1 in gI.node_positions:
-            for node_pos2 in gI.node_positions:
+        time.sleep(4)
+        CheckDistance()
 
-                if node_pos1 == node_pos2:
-                    continue
+        if (gSrcNode <= -1 or gDstNode <= -1 or gSrcNode == gDstNode):
+            continue
 
-                # Return the Euclidean norm, sqrt(x*x + y*y). This is the length of the vector from the origin to point (x, y).
-                dist = math.hypot(gI.node_positions[node_pos2][0] - gI.node_positions[node_pos1][0], 
-                gI.node_positions[node_pos2][1] - gI.node_positions[node_pos1][1])
+        gRouteTable.clear()
+        ParseRoute(gSrcNode, gDstNode)
 
-                if (dist > gMaxEdgeDif):
-                    if ((node_pos1,node_pos2) in gI.edges) or \
-                        ((node_pos2, node_pos1) in gI.edges):
-                        gI._delete_edge((node_pos1,node_pos2))
-                else:
-                    if ((node_pos1,node_pos2) not in gI.edges) and \
-                    ((node_pos2, node_pos1) not in gI.edges):
-                        gI._add_edge((node_pos1,node_pos2))
-                        # try to change weights
-                        # gG.add_weighted_edges_from([(node_pos1, node_pos2, dist)])
+    return                     
 
 def main():
     tComputeRoute = Thread(target = ChangeGraph)
@@ -223,9 +228,6 @@ def main():
 
     tCheckGraphChanges = Thread(target = CheckGraphAndUpdate)
     tCheckGraphChanges.start()
-
-    tCheckDist = Thread(target = CheckDistance)
-    tCheckDist.start()
 
     GenerateRandomGraph()
 
