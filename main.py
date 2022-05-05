@@ -39,6 +39,13 @@ def GenerateRandomGraph():
 
     print (f"Route count: {dRouteCnt}")
 
+
+    for n in range(dNodeCnt):
+        for nn in gG.neighbors(n):
+            edge_attrs = {}
+            edge_attrs[(n, nn)] = 'black'
+            nx.set_edge_attributes(gG, edge_attrs, "edge_color")
+
     for cnt in range(4):
         d_groups = []
         d_nodes = []
@@ -55,7 +62,6 @@ def GenerateRandomGraph():
                 if saved_color != color_map[n] and n not in d_nodes:
                     edge_attrs = {}
                     edge_attrs[(cur_node, n)] = g_Type[cnt]
-                    # print (edge_attrs)
                     nx.set_edge_attributes(gG, edge_attrs, "edge_color")
                     cur_node = n
                     print (f"{cnt}: New node: {cur_node}")
@@ -67,7 +73,7 @@ def GenerateRandomGraph():
             pass
 
     edge_colors = nx.get_edge_attributes(gG,'edge_color').values()
-    nx.draw_networkx(gG, with_labels=True, node_color=color_map, edgecolors='black', edge_color=edge_colors, width=5, node_size=300)
+    nx.draw_networkx(gG, with_labels=True, node_color=color_map, edge_color=edge_colors, width=3, node_size=300)
     
     plt.show()
     return
