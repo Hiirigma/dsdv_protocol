@@ -1,3 +1,4 @@
+from typing import Counter
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
@@ -38,47 +39,60 @@ def GenerateRandomGraph():
 
     print (f"Route count: {dRouteCnt}")
 
-    # set 
     for n in range(dNodeCnt):
         for nn in gG.neighbors(n):
             edge_attrs = {}
             edge_attrs[(n, nn)] = 'black'
             nx.set_edge_attributes(gG, edge_attrs, "color")
 
+    color_counter = Counter()
+
     for cnt in range(4):
         d_groups = []
         d_nodes = []
 
         cur_node = random.randint(0,dNodeCnt)
+        d_nodes.append(cur_node)
+        d_groups.append(color_map[cur_node])
         print (f"{cnt}: Start node: {cur_node}")
         for i in range(dRouteCnt):
-            d_nodes.append(cur_node)
-            saved_color = color_map[cur_node]
-            if saved_color not in d_groups:
-                d_groups.append(saved_color)
-            
             for n in gG.neighbors(cur_node):
-                if saved_color != color_map[n] and n not in d_nodes:
+                if color_map[cur_node] != color_map[n] and n not in d_nodes:
                     edge_attrs = {}
                     edge_attrs[(cur_node, n)] = g_Type[cnt]
                     nx.set_edge_attributes(gG, edge_attrs, "color")
                     cur_node = n
-                    print (f"{cnt}: New node: {cur_node}")
+                    if color_map[cur_node] not in d_groups:
+                        d_groups.append(color_map[cur_node])
+                    d_nodes.append(cur_node)
                     break
 
-            if saved_color == color_map[cur_node] and i >= 4:
-                break
+        color_counter.update(d_groups)
+        print (f"groups: {d_groups}")
 
-            pass
+        print (f"{d_nodes[0]}", end='')
+        for n in range(1,len(d_nodes)):
+            print (f"->{d_nodes[n]}", end='')
+
+        print ('')
+
+        # TODO:
+        # Think about counter in this place
+        print (f"{color_map[d_nodes[0]]}", end='')
+        for n in range(1,len(d_nodes)):
+            print (f"->{color_map[d_nodes[n]]}", end='')
+        print ('')
+
+    print (f"Counter: {color_counter}")
 
     edge_colors = nx.get_edge_attributes(gG,'color').values()
 
-    print("edges")
-    print(list(gG.edges(data=True)))
-    print("default graph attributes")
-    print(gG.graph)
-    print("node attributes")
-    print(gG.nodes.data(True))
+    # print("edges")
+    # print(list(gG.edges(data=True)))
+    # print("default graph attributes")
+    # print(gG.graph)
+    # print("node attributes")
+    # print(gG.nodes.data(True))
     nx.draw_networkx(gG, with_labels=True, node_color=color_map, edge_color=edge_colors, width=3, node_size=300)
     
     plt.show()
