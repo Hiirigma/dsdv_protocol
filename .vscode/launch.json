@@ -10,7 +10,8 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["--rand=True"],
+            "args": ["--load=05_13_2022-00.32.25"],
+            //"args": ["--rand=True"],
             "justMyCode": true
         }
     ]
