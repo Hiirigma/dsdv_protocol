@@ -194,6 +194,19 @@ def load_graph_and_analyze(file_name):
     print (f"global percentages: {color_list_perc}")
 
     edge_colors = nx.get_edge_attributes(G,'color').values()
+
+    idx = 0
+
+    # remove color from map
+    for node in G.nodes:
+        if idx != int(node):
+             del color_map[idx]
+             idx += 1
+             if idx != int(node):
+                del color_map[idx]
+                
+        idx += 1
+
     nx.draw_networkx(G, with_labels=True, node_color=color_map, edge_color=edge_colors, width=3, node_size=300)
 
     file_name = datetime.datetime.now().strftime("%m_%d_%Y-%H.%M.%S")
@@ -214,7 +227,55 @@ def load_graph_and_analyze(file_name):
 def load_graph_and_change(file_name):
     global g_Type, route_counter, node_counter_in_route
     G = nx.read_gml(file_name+".gml")
-    pass
+
+    saved_start_nodes = []
+    with open(file_name+".nodes", "r") as f:
+        for line in f:
+            # remove linebreak from a current name
+            # linebreak is the last character of each line
+            x = line[:-1]
+
+            # add current item to the list
+            saved_start_nodes.append(int(x))
+
+    color_map = []
+    idx = 0
+    with open(file_name+".colors", "r") as f:
+        for line in f:
+            # remove linebreak from a current name
+            # linebreak is the last character of each line
+            x = line[:-1]
+
+            # add current item to the list
+            color_map.append(x)
+            idx += 1
+
+    while 1:
+        print(f"Nodes: {G.nodes}")
+        print("Select node to delete it > ")
+        node = 0
+        node = int(input())
+        
+        if node < 0:
+            break
+
+        if str(node) not in G:
+            continue
+
+        G.remove_node(str(node))
+
+    file_name = datetime.datetime.now().strftime("%m_%d_%Y-%H.%M.%S")
+
+    nx.write_gml(G, str(file_name+".gml"))
+    with open(file_name+".nodes", "w") as f:
+        for item in saved_start_nodes:
+            # write each item on a new line
+            f.write("%d\n" % item)
+    with open(file_name+".colors", "w") as f:
+        for item in color_map:
+            # write each item on a new line
+            f.write("%s\n" % item)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Erdos Renyi graph application.')
