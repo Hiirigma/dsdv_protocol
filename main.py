@@ -35,9 +35,10 @@ def GenerateRandomGraph():
     res_dct = {i: color_map[i] for i in range(0, len(color_map))}
     nx.set_node_attributes(gG, res_dct, name="color")
 
-    dRouteCnt = random.randint(4,10)
+    node_counter_in_route = random.randint(4,10)
+    route_counter = 4
 
-    print (f"Route count: {dRouteCnt}")
+    print (f"Route count: {node_counter_in_route}")
 
     for n in range(dNodeCnt):
         for nn in gG.neighbors(n):
@@ -47,15 +48,18 @@ def GenerateRandomGraph():
 
     color_counter = Counter()
 
-    for cnt in range(4):
+    print ('')
+    for cnt in range(route_counter):
+        local_color_counter = Counter()
         d_groups = []
         d_nodes = []
 
         cur_node = random.randint(0,dNodeCnt)
         d_nodes.append(cur_node)
         d_groups.append(color_map[cur_node])
+        local_color_counter.update([color_map[cur_node]])
         print (f"{cnt}: Start node: {cur_node}")
-        for i in range(dRouteCnt):
+        for i in range(node_counter_in_route):
             for n in gG.neighbors(cur_node):
                 if color_map[cur_node] != color_map[n] and n not in d_nodes:
                     edge_attrs = {}
@@ -64,11 +68,15 @@ def GenerateRandomGraph():
                     cur_node = n
                     if color_map[cur_node] not in d_groups:
                         d_groups.append(color_map[cur_node])
+                    local_color_counter.update([color_map[cur_node]])
                     d_nodes.append(cur_node)
                     break
 
-        color_counter.update(d_groups)
-        print (f"groups: {d_groups}")
+        # get local percentages per cycle
+        color_list_perc = {cc:(local_color_counter[cc] / node_counter_in_route)*100 for cc in local_color_counter}
+        print (f"percentage per cycle: {color_list_perc}")
+
+        color_counter.update(local_color_counter)
 
         print (f"{d_nodes[0]}", end='')
         for n in range(1,len(d_nodes)):
@@ -76,25 +84,18 @@ def GenerateRandomGraph():
 
         print ('')
 
-        # TODO:
-        # Think about counter in this place
         print (f"{color_map[d_nodes[0]]}", end='')
         for n in range(1,len(d_nodes)):
             print (f"->{color_map[d_nodes[n]]}", end='')
         print ('')
+        print ('')
 
-    print (f"Counter: {color_counter}")
+    # get global percentages per all cycles
+    color_list_perc = {cc: (color_counter[cc] / (node_counter_in_route*route_counter))*100 for cc in color_counter}
+    print (f"global percentages: {color_list_perc}")
 
     edge_colors = nx.get_edge_attributes(gG,'color').values()
-
-    # print("edges")
-    # print(list(gG.edges(data=True)))
-    # print("default graph attributes")
-    # print(gG.graph)
-    # print("node attributes")
-    # print(gG.nodes.data(True))
     nx.draw_networkx(gG, with_labels=True, node_color=color_map, edge_color=edge_colors, width=3, node_size=300)
-    
     plt.show()
     return
 
