@@ -2,6 +2,8 @@ from typing import Counter
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
+import argparse
+import datetime
 
 g_Type = [
     'red',
@@ -21,7 +23,7 @@ g_Type = [
     'cyan',
 ]
 
-def GenerateRandomGraph():
+def rand_graph_and_analyze():
     global g_Type
     print (f"Types count: {len(g_Type)}")
     dNodeCnt = random.randint(80,120)
@@ -96,11 +98,37 @@ def GenerateRandomGraph():
 
     edge_colors = nx.get_edge_attributes(gG,'color').values()
     nx.draw_networkx(gG, with_labels=True, node_color=color_map, edge_color=edge_colors, width=3, node_size=300)
+
+    file_name = datetime.datetime.now().strftime("%m_%d_%Y-%H.%M.%S")
+
+    nx.write_gml(gG, str(file_name+".gml"))
+
     plt.show()
     return
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='Erdos Renyi graph application.')
+    parser.add_argument('--rand', dest='rand_graph',type=bool,default=True,
+                        help='Choose that param to generate new random graph')
+
+    parser.add_argument('--load', dest='loaded_graph',default='',type=str,
+                    help='Choose that param to load graph from file')
+
+    args = parser.parse_args()
+    return args
+
+def load_graph_and_analyze(loaded_graph):
+    pass
+
 def main():
-    GenerateRandomGraph()
+    args = parse_args()
+    
+    if args.rand_graph == True:
+        rand_graph_and_analyze()
+    
+    if len(args.loaded_graph) != 0:
+        load_graph_and_analyze(args.load_graph)
+
     return
 
 if __name__ == "__main__":
